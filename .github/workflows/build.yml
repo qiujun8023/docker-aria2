@@ -73,3 +73,11 @@ jobs:
           git add PACKAGES
           git commit -m "chore: update aria2 ${VERSION} packages"
           git push origin HEAD:master
+
+      - name: Update Docker Hub description
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ secrets.DOCKERHUB_USERNAME }}/aria2
+          short-description: Docker image for aria2, rebuilt automatically on Alpine package updates
