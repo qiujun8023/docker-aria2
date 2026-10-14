@@ -1,8 +1,5 @@
 # docker-aria2
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/qiujun8023/aria2)](https://hub.docker.com/r/qiujun8023/aria2)
-[![Docker Image Version](https://img.shields.io/docker/v/qiujun8023/aria2/latest)](https://hub.docker.com/r/qiujun8023/aria2/tags)
-
 Docker image for [aria2](https://github.com/aria2/aria2), built from the Alpine package, supports `linux/amd64` and `linux/arm64`. Checked daily and rebuilt whenever aria2 or any of its Alpine dependencies is updated.
 
 ## Tags
@@ -45,7 +42,7 @@ Both examples run as uid/gid `1000`; `config` and `downloads` must be writable b
 ```bash
 docker run -d --user 1000:1000 -p 6800:6800 \
   -v ./config:/config -v ./downloads:/downloads \
-  qiujun8023/aria2
+  ghcr.io/qiujun8023/aria2
 ```
 
 ### Docker Compose
@@ -53,7 +50,7 @@ docker run -d --user 1000:1000 -p 6800:6800 \
 ```yaml
 services:
   aria2:
-    image: qiujun8023/aria2
+    image: ghcr.io/qiujun8023/aria2
     user: "1000:1000"
     ports:
       - "6800:6800"

@@ -5,9 +5,15 @@ on:
     # Check daily at 00:00 UTC
     - cron: "0 0 * * *"
   workflow_dispatch: # Allow manual runs
+    inputs:
+      force:
+        description: Build even if nothing changed
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   build:
@@ -25,7 +31,7 @@ jobs:
           VERSION=$(docker run --rm alpine:latest sh -c \
             'apk add -q --no-cache aria2 >/dev/null && aria2c -v' | sed -n 's/^aria2 version //p')
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          if cmp -s PACKAGES PACKAGES.new; then
+          if [ "${{ inputs.force }}" != "true" ] && cmp -s PACKAGES PACKAGES.new; then
             echo "needed=false" >> $GITHUB_OUTPUT
             echo "Already up to date: ${VERSION}"
           else
@@ -42,12 +48,13 @@ jobs:
         if: steps.check.outputs.needed == 'true'
         uses: docker/setup-buildx-action@v4
 
-      - name: Login to DockerHub
+      - name: Login to GHCR
         if: steps.check.outputs.needed == 'true'
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
         if: steps.check.outputs.needed == 'true'
@@ -59,8 +66,8 @@ jobs:
           pull: true
           no-cache: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/aria2:${{ steps.check.outputs.version }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/aria2:latest
+            ghcr.io/${{ github.repository_owner }}/aria2:${{ steps.check.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/aria2:latest
 
       - name: Commit
         if: steps.check.outputs.needed == 'true'
@@ -71,13 +78,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           mv PACKAGES.new PACKAGES
           git add PACKAGES
+          # A forced build may leave PACKAGES unchanged
+          git diff --cached --quiet && exit 0
           git commit -m "chore: update aria2 ${VERSION} packages"
           git push origin HEAD:master
-
-      - name: Update Docker Hub description
-        uses: peter-evans/dockerhub-description@v5
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ secrets.DOCKERHUB_USERNAME }}/aria2
-          short-description: Docker image for aria2, rebuilt automatically on Alpine package updates
